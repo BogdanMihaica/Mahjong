@@ -1,8 +1,24 @@
 import pygame as pg
 import random
+import socket
+
+
+#Socket configuration
+HOST = "127.0.0.1"
+PORT = 65432
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((HOST, PORT))
+    s.sendall(b"New Client@!")
+    data = s.recv(1024)
+
+print(f"Received {data!r}")
+
+
+
 
 pg.init()
-
+pg.display.set_caption("Mahjong")
 # Board Configuration
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
@@ -98,6 +114,38 @@ def center_pieces(player_cards, screen_dim, orientation):
         return (screen_dim - total_width) // 2, None
     else:
         return None, (screen_dim - total_width) // 2
+    
+
+
+def text(x, y, color, fontsize, message):
+    font = pg.font.SysFont("timesnewroman", fontsize)
+    rendered_text = font.render(message, True, color)
+    text_rect = rendered_text.get_rect(center=(x, y))
+    window.blit(rendered_text, text_rect)
+
+
+
+
+def display_draw_area():
+    
+    surfaceW,surfaceH=200, 200
+    x,y=150,SCREEN_HEIGHT//2-surfaceH//2
+    surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+    color=(0,255,0,70)
+    surface.fill(color)
+    border_color = (0, 255, 0)
+    border_thickness = 5
+    pg.draw.rect(surface, border_color, surface.get_rect(), border_thickness)
+    window.blit(surface, (x,y))
+    text_x = x+surfaceW//2
+    text_y = y+surfaceH//2
+    text(text_x, text_y, (0, 255, 0), 30, "Draw card")
+
+
+
+def handle_draw_card(cardsLeft, turn):
+    
+    return
 
 run = True
 holdingCard=False
@@ -107,10 +155,10 @@ heldCardX=0
 heldCardY=0
 pickSound = pg.mixer.Sound("sounds/pick.wav")
 while run:
-    # Clear and redraw the background
+    
     window.blit(bg_image, (0, 0))
-
-    # Draw all players' pieces
+    display_draw_area()
+ 
     x_offset, _ = center_pieces(player1, SCREEN_WIDTH, "horizontal")
     player1_rects = display_pieces(player1, x_offset, SCREEN_HEIGHT - tile_size[1] - 20, "horizontal", rotation=0)
 
@@ -144,14 +192,12 @@ while run:
                         pickSound.play()
                         holdingCard = True
                         card_name = list(card.keys())[0]
-                        print(f"Grabbed card: {card_name}. Card value: {values[card_name]}. Card Index: {index}")
                         heldCard = card_name
                         heldCardIndex = index
                         heldCardX, heldCardY = rect.topleft[0], rect.topleft[1]
                     else:
                         holdingCard = False
                         player1[heldCardIndex], player1[index] = player1[index], player1[heldCardIndex]
-                        print(f"Dropped card: {heldCard}, card index: {heldCardIndex} on card: {card_name}, card Index: {index}")
                     break
     pg.display.update()
 
