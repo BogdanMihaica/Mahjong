@@ -28,7 +28,7 @@ def load_image(path, size):
             print(f"Error: File not found {path}")
             return pg.Surface(size)
 
-tile_size = (36, 50)
+
 pieces = {
         "stick": {f"stick_{i}":f"tiles/stick_{i}.jpg" for i in range(1, 10)},
         "character": {f"character_{i}": f"tiles/character_{i}.jpg" for i in range(1, 10)},
@@ -75,6 +75,17 @@ def broadcast(message):
             except Exception as e:
                 print(f"Failed to send message to client: {e}")
 
+def broadcast_numbers():
+    """Send a message to all connected clients."""
+    nums=[b"1",b"2",b"3",b"4"]
+    for index,client in enumerate(clients):
+            print(client)
+            try:
+                client.sendall(nums[index])
+            except Exception as e:
+                print(f"Failed to send player index to client: {e}")
+
+
 def send_cards_to_players():
     for index,client in enumerate(clients):
             print(client)
@@ -82,7 +93,7 @@ def send_cards_to_players():
                 cards=pickle.dumps(players[index])
                 client.sendall(cards)
             except Exception as e:
-                print(f"Failed to send message to client: {e}")
+                print(f"Failed to send cards to player: {e}")
 def handle_all_clients():
     """Wait for 4 clients to connect and then broadcast messages to all clients."""
     global game_state, game_started,clients
@@ -95,7 +106,19 @@ def handle_all_clients():
                     pass #aici voi implementa logica
             except ConnectionResetError:
                 continue
-
+def wait_for_client_responses(expected_clients):
+    """Wait for all clients to send their 'ready' response."""
+    responses = 0
+    while responses < expected_clients:
+        for conn in clients:
+            try:
+                data = conn.recv(1024)
+                if data == b"ready":
+                    responses += 1
+                    print(f"Client {conn} is ready. Total ready: {responses}/{expected_clients}")
+            except Exception as e:
+                print(f"Error receiving client response: {e}")
+    print("All clients are ready.")
 def main():
     global clientsConnected
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -114,10 +137,11 @@ def main():
 
                 if clientsConnected == 4:
                     print("4 clients connected. The game is starting.")
-                    broadcast(b"started")
-                    
+                    broadcast_numbers()
+                    wait_for_client_responses(4)
+                   
                     print("All players accepted")
-                    #send_cards_to_players()
+                    send_cards_to_players()
                     threading.Thread(target=handle_all_clients, daemon=True).start()
                 elif clientsConnected > 4:
                     print("Game is full. No more connections are allowed.")

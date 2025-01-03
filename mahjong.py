@@ -9,23 +9,46 @@ PORT = 65432
 
 # Game start
 gameStarted=False
+player=0
+playerCards=[]
 
-def handle_wait(conn):
-    global gameStarted
-    while gameStarted==False:
-        data=conn.recv(1024)
+tile_size = (36, 50)
+def load_image(path, size):
         try:
-            if data:
-                if data==b"started":
-                    print("Game has started")
-                    #data=conn.recv(1024)
-                    #cards=pickle.loads(data)
-                    #print(cards)
-                    toSend=b"Accepted"
+            img = pg.image.load(path)
+            return pg.transform.scale(img, size)
+        except FileNotFoundError:
+            print(f"Error: File not found {path}")
+            return pg.Surface(size)
+        
+def transform_cards(cards):
+    crs=[]
+    for card in cards:
+        key=list(card.keys())[0]
+        val=card[key]
+        crs.append({key:load_image(val,tile_size)})
+    return crs
+def handle_wait(conn):
+    global gameStarted,playerCards
+    while not gameStarted:
+        try:
+            data = conn.recv(1024)
+            if int(data):
+                #if data == b"started":
+                    player=int(data)
+                    print(player)
+                    toSend = b"ready"
                     conn.sendall(toSend)
-                    gameStarted=True
+                    gameStarted = True
+                    #sending cards to players 
+                    card_data = conn.recv(4096)  
+                    cards = pickle.loads(card_data)
+                    playerCards=transform_cards(cards)
+                    print(playerCards)
+                    
         except Exception as e:
             print(f"Some exception occurred: {e}")
+
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
@@ -50,13 +73,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         pg.quit()
         exit()
 
-    def load_image(path, size):
-        try:
-            img = pg.image.load(path)
-            return pg.transform.scale(img, size)
-        except FileNotFoundError:
-            print(f"Error: File not found {path}")
-            return pg.Surface(size)
+    
 
     tile_size = (36, 50)
     pieces = {
@@ -75,8 +92,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         window.blit(img, (x_offset, y_offset))
         return pg.Rect(x_offset, y_offset, tile_size[0], tile_size[1])
 
-    # Shuffling cards
-    all_cards = []
     values = {
         "stick_1": 1, "stick_2": 2, "stick_3": 3, "stick_4": 4, "stick_5": 5, "stick_6": 6, "stick_7": 7, "stick_8": 8, "stick_9": 9,
         "dot_1": 10, "dot_2": 11, "dot_3": 12, "dot_4": 13, "dot_5": 14, "dot_6": 15, "dot_7": 16, "dot_8": 17, "dot_9": 18,
@@ -87,13 +102,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         "season_1": 36, "season_2": 36, "season_3": 36, "season_4": 36
     }
 
-    for key in pieces:
-        iterations = 4
-        if key in ["flower", "season"]:
-            iterations = 2
-        for _ in range(iterations):
-            for key1 in pieces[key]:
-                all_cards.append({key1: pieces[key][key1]})
+
 
     def display_pieces(all_cards, x_offset, y_offset, orientation="horizontal",player=1, rotation=0):
         spacing = 10
@@ -108,12 +117,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     y_offset += tile_size[0] + spacing
         return card_rects
 
-    random.shuffle(all_cards)
-    player1 = all_cards[0:14]
-    player2 = all_cards[14:27]
-    player3 = all_cards[27:40]
-    player4 = all_cards[40:53]
-    drawable = all_cards[52:]
+
+   
+   
+  
 
     def card_action(x,y, color1):
         rect_surface = pg.Surface((tile_size[0], tile_size[1]), pg.SRCALPHA)
@@ -127,8 +134,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return (screen_dim - total_width) // 2, None
         else:
             return None, (screen_dim - total_width) // 2
-        
-
 
     def text(x, y, fontsize, message, color=(255,255,255)):
         font = pg.font.SysFont("timesnewroman", fontsize)
@@ -136,11 +141,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_rect = rendered_text.get_rect(center=(x, y))
         window.blit(rendered_text, text_rect)
 
-
-
-
     def display_draw_area():
-        
         surfaceW,surfaceH=200, 200
         x,y=150,SCREEN_HEIGHT//2-surfaceH//2
         surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
@@ -154,7 +155,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_y = y+surfaceH//2
         text(text_x, text_y, 30, "Draw card",color=(0, 255, 0))
 
-
+    def display_exposed_areas():
+        
+        return
 
     def handle_draw_card(cardsLeft, turn):
         return
@@ -176,18 +179,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
              text(500,350,50,"Waiting for players")
         else:
             display_draw_area()
+            x_offset, _ = center_pieces(playerCards, SCREEN_WIDTH, "horizontal")
+            player1_rects = display_pieces(playerCards, x_offset, SCREEN_HEIGHT - tile_size[1] - 20, "horizontal", rotation=0)
 
-            x_offset, _ = center_pieces(player1, SCREEN_WIDTH, "horizontal")
-            player1_rects = display_pieces(player1, x_offset, SCREEN_HEIGHT - tile_size[1] - 20, "horizontal", rotation=0)
-
-            _, y_offset = center_pieces(player2, SCREEN_HEIGHT, "vertical")
-            player2_rects = display_pieces(player2, SCREEN_WIDTH - tile_size[1] - 20, y_offset, "vertical", player=2, rotation=90)
-
-            x_offset, _ = center_pieces(player3, SCREEN_WIDTH, "horizontal")
-            player3_rects = display_pieces(player3, x_offset, 20, "horizontal", player=3, rotation=180)
-
-            _, y_offset = center_pieces(player4, SCREEN_HEIGHT, "vertical")
-            player4_rects = display_pieces(player4, 20, y_offset, "vertical", player=4, rotation=270)
 
             # Draw the highlight rectangle if holding a card
             if holdingCard:
@@ -214,7 +208,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             heldCardX, heldCardY = rect.topleft[0], rect.topleft[1]
                         else:
                             holdingCard = False
-                            player1[heldCardIndex], player1[index] = player1[index], player1[heldCardIndex]
+                            playerCards[heldCardIndex], playerCards[index] = playerCards[index], playerCards[heldCardIndex]
                         break
         pg.display.update()
 
