@@ -60,10 +60,15 @@ clientsConnected = 0
 game_started = False
 lock = threading.Lock()
 clients = []  # To store client connections
-game_state = {
-    "turns": 0,
-    "turn": 1,
+gameState={
+   "turn": 1,
+   "p1Exposed": [],
+   "p2Exposed": [],
+   "p3Exposed": [],
+   "p4Exposed": [],
+   "discarded": []
 }
+  
 
 def broadcast(message):
     """Send a message to all connected clients."""
@@ -76,7 +81,7 @@ def broadcast(message):
                 print(f"Failed to send message to client: {e}")
 
 def broadcast_numbers():
-    """Send a message to all connected clients."""
+    """Send the player index to all connected clients."""
     nums=[b"1",b"2",b"3",b"4"]
     for index,client in enumerate(clients):
             print(client)
@@ -94,18 +99,30 @@ def send_cards_to_players():
                 client.sendall(cards)
             except Exception as e:
                 print(f"Failed to send cards to player: {e}")
-def handle_all_clients():
-    """Wait for 4 clients to connect and then broadcast messages to all clients."""
-    global game_state, game_started,clients
-    
-    while True:
-        for conn in clients:
+def handle_game():
+    """Main game loop to handle player actions."""
+    global gameState, clients
+    while True: #Game loop
+        for index, conn in enumerate(clients):
             try:
                 data = conn.recv(1024)
                 if data:
-                    pass #aici voi implementa logica
-            except ConnectionResetError:
-                continue
+                    # Mmessage formats: 
+                    # {"pong": card_index}      - no need to be your turn and the card has to be freshly discarded 
+                    # {"gong": card_index}      - no need to be your turn and the card has to be freshly discarded 
+                    # {"seung": card_index}     - needs to be your turn and the card has to be freshly discarded 
+                    # {"flower": card_index}    - needs to be your turn 
+                    # {"discard: card_index"}   - needs to be your turn
+                    # {"draw": 0}               - needs to be your turn
+                    # {}
+                    print(f"Message from player {index + 1}: {data.decode('utf-8')}")
+            except socket.error as e:
+                print(f"Error receiving data from player {index + 1}: {e}")
+                conn.close()
+                clients.remove(conn)
+                break
+
+
 def wait_for_client_responses(expected_clients):
     """Wait for all clients to send their 'ready' response."""
     responses = 0
@@ -137,12 +154,10 @@ def main():
 
                 if clientsConnected == 4:
                     print("4 clients connected. The game is starting.")
-                    broadcast_numbers()
+                    broadcast_numbers() #announces players what is their turn 
                     wait_for_client_responses(4)
-                   
-                    print("All players accepted")
                     send_cards_to_players()
-                    threading.Thread(target=handle_all_clients, daemon=True).start()
+                    threading.Thread(target=handle_game, daemon=True).start()
                 elif clientsConnected > 4:
                     print("Game is full. No more connections are allowed.")
                     conn.sendall(b"Game is full. No more connections are allowed.")

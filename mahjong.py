@@ -143,7 +143,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     def display_draw_area():
         surfaceW,surfaceH=200, 200
-        x,y=150,SCREEN_HEIGHT//2-surfaceH//2
+        x,y=150,SCREEN_HEIGHT//2-surfaceH//2-100
         surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
         color=(0,255,0,70)
         surface.fill(color)
@@ -154,9 +154,56 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_x = x+surfaceW//2
         text_y = y+surfaceH//2
         text(text_x, text_y, 30, "Draw card",color=(0, 255, 0))
-
+        return pg.Rect(x,y,surfaceW,surfaceH)
+    def display_discard_button():
+        surfaceW,surfaceH=200, 80
+        x,y=150,SCREEN_HEIGHT//2-surfaceH//2+150+10-100
+        surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+        color=(255,0,0,70)
+        surface.fill(color)
+        border_color = (255, 0, 0)
+        border_thickness = 5
+        pg.draw.rect(surface, border_color, surface.get_rect(), border_thickness)
+        window.blit(surface, (x,y))
+        text_x = x+surfaceW//2
+        text_y = y+surfaceH//2
+        text(text_x, text_y, 30, "Discard",color=(255, 0,0))
+        return pg.Rect(x,y,surfaceW,surfaceH)
+    def display_pick_last_button():
+        surfaceW,surfaceH=200, 80
+        x,y=150,SCREEN_HEIGHT//2-surfaceH//2+150+10
+        surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+        color=(0,0,255,70)
+        surface.fill(color)
+        border_color = (0, 0, 255)
+        border_thickness = 5
+        pg.draw.rect(surface, border_color, surface.get_rect(), border_thickness)
+        window.blit(surface, (x,y))
+        text_x = x+surfaceW//2
+        text_y = y+surfaceH//2
+        text(text_x, text_y, 20, "Pick last card",color=(255, 255, 255))
+        return pg.Rect(x,y,surfaceW,surfaceH)
     def display_exposed_areas():
-        
+        padX=20
+        s1h=SCREEN_HEIGHT-40
+        s1w=tile_size[1]
+        surface=pg.Surface((s1w,s1h), pg.SRCALPHA)
+        color=(255,255,255,70)
+        surface.fill(color)
+        x,y=padX,20
+        window.blit(surface, (x,y))
+        x,y=SCREEN_WIDTH - padX -tile_size[1],20
+        window.blit(surface, (x,y))
+
+        s2h=tile_size[1]
+        s2w=SCREEN_HEIGHT-40
+        surface=pg.Surface((s2w,s2h), pg.SRCALPHA)
+        color=(255,255,255,70)
+        surface.fill(color)
+        x,y=(SCREEN_WIDTH-s2w)//2,padX
+        window.blit(surface, (x,y))
+        x,y=(SCREEN_WIDTH-s2w)//2,SCREEN_HEIGHT-padX-tile_size[1]
+        window.blit(surface, (x,y))
         return
 
     def handle_draw_card(cardsLeft, turn):
@@ -173,15 +220,19 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     pickSound = pg.mixer.Sound("sounds/pick.wav")
    
     while run:
-        
+        draw=None
+        discard=None
+        pick=None
         window.blit(bg_image, (0, 0))
         if gameStarted==False:
              text(500,350,50,"Waiting for players")
         else:
-            display_draw_area()
+            draw=display_draw_area()
+            discard=display_discard_button()
+            pick=display_pick_last_button()
+            display_exposed_areas()
             x_offset, _ = center_pieces(playerCards, SCREEN_WIDTH, "horizontal")
-            player1_rects = display_pieces(playerCards, x_offset, SCREEN_HEIGHT - tile_size[1] - 20, "horizontal", rotation=0)
-
+            player1_rects = display_pieces(playerCards, x_offset, SCREEN_HEIGHT - tile_size[1] - 80, "horizontal", rotation=0)
 
             # Draw the highlight rectangle if holding a card
             if holdingCard:
@@ -210,6 +261,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             holdingCard = False
                             playerCards[heldCardIndex], playerCards[index] = playerCards[index], playerCards[heldCardIndex]
                         break
+                if draw.collidepoint(mouse_pos):
+                    print("Drew")
         pg.display.update()
 
     pg.quit()
