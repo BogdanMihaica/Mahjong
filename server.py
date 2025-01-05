@@ -69,7 +69,15 @@ gameState={
    "discarded": []
 }
   
-
+def broadcast_object(obj):
+     """Send an object to all connected clients."""
+     for client in clients:
+            print(client)
+            try:
+                ob=pickle.dumps(obj)
+                client.sendall(ob)
+            except Exception as e:
+                print(f"Failed to send object to client: {e}")
 def broadcast(message):
     """Send a message to all connected clients."""
     
@@ -107,15 +115,18 @@ def handle_game():
             try:
                 data = conn.recv(1024)
                 if data:
-                    # Mmessage formats: 
-                    # {"pong": card_index}      - no need to be your turn and the card has to be freshly discarded 
-                    # {"gong": card_index}      - no need to be your turn and the card has to be freshly discarded 
-                    # {"seung": card_index}     - needs to be your turn and the card has to be freshly discarded 
-                    # {"flower": card_index}    - needs to be your turn 
-                    # {"discard: card_index"}   - needs to be your turn
-                    # {"draw": 0}               - needs to be your turn
-                    # {}
-                    print(f"Message from player {index + 1}: {data.decode('utf-8')}")
+                    # Data formats: 
+                    # {"player": number, "action":"pick"}    - no need to be his turn and the card has to be freshly discarded 
+                    # {"player": number, "action":"draw"}    - needs to be his turn and the card has to be freshly discarded 
+                    # {"player": number, "action":"discard"} - needs to be his turn and the card has to be freshly discarded
+
+
+                    # If pick action happens, server decides if it is for a gong, pong or seung (in this order)
+                    # If it is a players turn, if it has flowers, display them and give them the ability to draw again
+                    # If a player picks a card, check for flowers again
+                    # If the server decides GONG, give the ability to draw again
+                    
+                    pass
             except socket.error as e:
                 print(f"Error receiving data from player {index + 1}: {e}")
                 conn.close()

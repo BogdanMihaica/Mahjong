@@ -29,7 +29,7 @@ def transform_cards(cards):
         crs.append({key:load_image(val,tile_size)})
     return crs
 def handle_wait(conn):
-    global gameStarted,playerCards
+    global gameStarted,playerCards,player
     while not gameStarted:
         try:
             data = conn.recv(1024)
@@ -216,9 +216,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     heldCardIndex=0
     heldCardX=0
     heldCardY=0
-   
+    
     pickSound = pg.mixer.Sound("sounds/pick.wav")
-   
+    pongs=[pg.mixer.Sound("sounds/pong-1.mp3"),pg.mixer.Sound("sounds/pong-2.mp3"),pg.mixer.Sound("sounds/pong-3.mp3"),pg.mixer.Sound("sounds/pong-4.mp3")]
+    seungs=[pg.mixer.Sound("sounds/seung-1.mp3"),pg.mixer.Sound("sounds/seung-2.mp3"),pg.mixer.Sound("sounds/seung-3.mp3"),pg.mixer.Sound("sounds/seung-4.mp3")]
+    gongs=[pg.mixer.Sound("sounds/gong-1.mp3"),pg.mixer.Sound("sounds/gong-2.mp3"),pg.mixer.Sound("sounds/gong-3.mp3"),pg.mixer.Sound("sounds/gong-4.mp3")]
     while run:
         draw=None
         discard=None
@@ -263,6 +265,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         break
                 if draw.collidepoint(mouse_pos):
                     print("Drew")
+                if pick.collidepoint(mouse_pos):
+                    print("Picked last card")
+                if discard.collidepoint(mouse_pos):
+                    print("Discarded")
         pg.display.update()
 
     pg.quit()
