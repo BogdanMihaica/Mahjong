@@ -3,16 +3,29 @@ import random
 import socket
 import threading
 import pickle
+import queue
+
 #Socket configuration
 HOST = "127.0.0.1"
 PORT = 65432
 
 # Game start
+message_queue = queue.Queue()
 gameStarted=False
 player=0
 playerCards=[]
-
+lock=0
 tile_size = (36, 50)
+shouldDiscard=False
+gameState={
+   "status":"ongoing",
+   "turn": 0,
+   "p1Exposed": [],
+   "p2Exposed": [],
+   "p3Exposed": [],
+   "p4Exposed": [],
+   "discarded": []
+}
 def load_image(path, size):
         try:
             img = pg.image.load(path)
@@ -28,6 +41,7 @@ def transform_cards(cards):
         val=card[key]
         crs.append({key:load_image(val,tile_size)})
     return crs
+
 def handle_wait(conn):
     global gameStarted,playerCards,player
     while not gameStarted:
@@ -54,7 +68,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
         
     pg.init()
-    pg.display.set_caption("Mahjong")
+    pg.display.set_caption(f"Mahjong")
     # Board Configuration
     SCREEN_WIDTH = 1000
     SCREEN_HEIGHT = 700
@@ -91,18 +105,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             img = pg.transform.rotate(img, rotation)
         window.blit(img, (x_offset, y_offset))
         return pg.Rect(x_offset, y_offset, tile_size[0], tile_size[1])
-
-    values = {
-        "stick_1": 1, "stick_2": 2, "stick_3": 3, "stick_4": 4, "stick_5": 5, "stick_6": 6, "stick_7": 7, "stick_8": 8, "stick_9": 9,
-        "dot_1": 10, "dot_2": 11, "dot_3": 12, "dot_4": 13, "dot_5": 14, "dot_6": 15, "dot_7": 16, "dot_8": 17, "dot_9": 18,
-        "character_1": 19, "character_2": 20, "character_3": 21, "character_4": 22, "character_5": 23, "character_6": 24, "character_7": 25, "character_8": 26, "character_9": 27,
-        "dragon_1": 28, "dragon_2": 29, "dragon_3": 30,
-        "wind_1": 32, "wind_2": 33, "wind_3": 34, "wind_4": 35,
-        "flower_1": 36, "flower_2": 36, "flower_3": 36, "flower_4": 36,
-        "season_1": 36, "season_2": 36, "season_3": 36, "season_4": 36
-    }
-
-
 
     def display_pieces(all_cards, x_offset, y_offset, orientation="horizontal",player=1, rotation=0):
         spacing = 10
@@ -155,6 +157,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_y = y+surfaceH//2
         text(text_x, text_y, 30, "Draw card",color=(0, 255, 0))
         return pg.Rect(x,y,surfaceW,surfaceH)
+    
     def display_discard_button():
         surfaceW,surfaceH=200, 80
         x,y=150,SCREEN_HEIGHT//2-surfaceH//2+150+10-100
@@ -169,6 +172,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_y = y+surfaceH//2
         text(text_x, text_y, 30, "Discard",color=(255, 0,0))
         return pg.Rect(x,y,surfaceW,surfaceH)
+    
     def display_pick_last_button():
         surfaceW,surfaceH=200, 80
         x,y=150,SCREEN_HEIGHT//2-surfaceH//2+150+10
@@ -182,6 +186,23 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_x = x+surfaceW//2
         text_y = y+surfaceH//2
         text(text_x, text_y, 20, "Pick last card",color=(255, 255, 255))
+        return pg.Rect(x,y,surfaceW,surfaceH)
+    
+
+    def request(message):
+        toSend=pickle.dumps(message)
+        s.sendall(toSend)
+
+    def display_warning(message):
+        surfaceW,surfaceH=400, 40
+        x,y=380,SCREEN_HEIGHT//2-surfaceH//2+150+30
+        surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+        color=(255,0,0,255)
+        surface.fill(color)
+        window.blit(surface, (x,y))
+        text_x = x+surfaceW//2
+        text_y = y+surfaceH//2
+        text(text_x, text_y, 30, message,color=(255, 255,255))
         return pg.Rect(x,y,surfaceW,surfaceH)
     def display_exposed_areas():
         padX=20
@@ -205,10 +226,60 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         x,y=(SCREEN_WIDTH-s2w)//2,SCREEN_HEIGHT-padX-tile_size[1]
         window.blit(surface, (x,y))
         return
+   
+    def display_discarded_cards_area():
+        surfaceW,surfaceH=500, 400
+        x,y=380,SCREEN_HEIGHT//2-surfaceH//2-50
+        surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+        color=(0,0,0,30)
+        surface.fill(color)
+        window.blit(surface, (x,y))
+        return pg.Rect(x,y,surfaceW,surfaceH)
+    
+    def display_discarded_cards():
+        global gameState
+        cards=transform_cards(gameState["discarded"])
+        offsetX,offsetY=380,SCREEN_HEIGHT//2-400//2-50
+        padding=10
+        cards_per_row=11
+        for i,card in enumerate(cards):
+             card_name=list(card.keys())[0]
+             surface=card[card_name]
+             x=offsetX+(i%cards_per_row)*tile_size[0]+padding*(i%cards_per_row)
+             y=offsetY+(i//cards_per_row)*tile_size[1]+padding*(i//cards_per_row)
+             paint_piece(x, y, surface, 0)
 
-    def handle_draw_card(cardsLeft, turn):
-        return
+    
 
+    def deserialize_cards(cards):
+        d_cards=[]
+        for card in cards:
+            d_cards.append(list(card.keys())[0])
+        return d_cards
+    
+    def handle_messages():
+        global gameState,message_queue,playerCards,active_warning,shouldDiscard
+        while True:
+            try:
+                data=s.recv(4096)
+                message=pickle.loads(data)
+                message_queue.put(message)
+
+                if message["type"] == "drawn":
+                    playerCards=transform_cards(message["content"])
+                    shouldDiscard=True
+                elif message["type"] == "warning":
+                    print("i got warned")
+                    active_warning=message["content"]
+                elif message["type"] == "discarded":
+                    playerCards=transform_cards(message["content"])
+                    shouldDiscard=False
+
+                elif message["type"] == "state":
+                    gameState=message["content"]
+            except Exception as e:
+                print(f"Exeption while receiving broadcast: {e}")
+    
     threading.Thread(target=handle_wait, args=(s,), daemon=True).start()
     run = True
     holdingCard=False
@@ -216,12 +287,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     heldCardIndex=0
     heldCardX=0
     heldCardY=0
-    
+    captionSet=False
+    active_warning="none"
     pickSound = pg.mixer.Sound("sounds/pick.wav")
     pongs=[pg.mixer.Sound("sounds/pong-1.mp3"),pg.mixer.Sound("sounds/pong-2.mp3"),pg.mixer.Sound("sounds/pong-3.mp3"),pg.mixer.Sound("sounds/pong-4.mp3")]
     seungs=[pg.mixer.Sound("sounds/seung-1.mp3"),pg.mixer.Sound("sounds/seung-2.mp3"),pg.mixer.Sound("sounds/seung-3.mp3"),pg.mixer.Sound("sounds/seung-4.mp3")]
     gongs=[pg.mixer.Sound("sounds/gong-1.mp3"),pg.mixer.Sound("sounds/gong-2.mp3"),pg.mixer.Sound("sounds/gong-3.mp3"),pg.mixer.Sound("sounds/gong-4.mp3")]
+    threading.Thread(target=handle_messages, daemon=True).start()
+    
     while run:
+    
         draw=None
         discard=None
         pick=None
@@ -229,6 +304,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         if gameStarted==False:
              text(500,350,50,"Waiting for players")
         else:
+            if not captionSet:
+                pg.display.set_caption(f"Mahjong - Player {player}")
+                captionSet=True
+            if gameState["turn"]==0 and player==1:
+                shouldDiscard=True
+            if active_warning!="none":
+                display_warning(active_warning)
+            display_discarded_cards_area()
+            display_discarded_cards()
             draw=display_draw_area()
             discard=display_discard_button()
             pick=display_pick_last_button()
@@ -248,6 +332,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             if event.type == pg.MOUSEBUTTONDOWN and gameStarted==True:
                 mouse_pos = pg.mouse.get_pos()
+
+                # Check card pick 
                 for index, player_rect in enumerate(player1_rects):
                     rect = player_rect[0]
                     card = player_rect[1]
@@ -263,12 +349,44 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             holdingCard = False
                             playerCards[heldCardIndex], playerCards[index] = playerCards[index], playerCards[heldCardIndex]
                         break
+
+                # Check Draw Card click
                 if draw.collidepoint(mouse_pos):
-                    print("Drew")
+                    if shouldDiscard==False:
+                        message={
+                            "player":player,
+                            "action":"draw",
+                            "args":[deserialize_cards(playerCards)]
+                            }
+                        request(message)
+                    else:
+                        active_warning="You can't do this now."
+                   
+                # Check Pick Last Card click
                 if pick.collidepoint(mouse_pos):
-                    print("Picked last card")
+                    message={
+                        "player":player,
+                        "action":"pick",
+                        "args":[deserialize_cards(playerCards)]
+                        }
+                    request(message)
+                    
+                # Check Discard click
                 if discard.collidepoint(mouse_pos):
-                    print("Discarded")
+                    if holdingCard==False:
+                        active_warning="You should select a card first!"
+                    elif shouldDiscard==False:
+                        active_warning="You can't discard now"
+                    else:  
+                        print(shouldDiscard)
+                        message={
+                            "player":player,
+                            "action":"discard",
+                            "args":[deserialize_cards(playerCards),heldCardIndex]
+                        }
+                        request(message)
+                        holdingCard=False
+                
         pg.display.update()
 
     pg.quit()

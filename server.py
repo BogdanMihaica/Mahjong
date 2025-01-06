@@ -10,6 +10,7 @@ PORT = 65432
 
 
 # Card defining
+
 all_cards = []
 values = {
         "stick_1": 1, "stick_2": 2, "stick_3": 3, "stick_4": 4, "stick_5": 5, "stick_6": 6, "stick_7": 7, "stick_8": 8, "stick_9": 9,
@@ -61,7 +62,8 @@ game_started = False
 lock = threading.Lock()
 clients = []  # To store client connections
 gameState={
-   "turn": 1,
+   "status":"ongoing",
+   "turn": 0,
    "p1Exposed": [],
    "p2Exposed": [],
    "p3Exposed": [],
@@ -72,7 +74,6 @@ gameState={
 def broadcast_object(obj):
      """Send an object to all connected clients."""
      for client in clients:
-            print(client)
             try:
                 ob=pickle.dumps(obj)
                 client.sendall(ob)
@@ -82,17 +83,19 @@ def broadcast(message):
     """Send a message to all connected clients."""
     
     for client in clients:
-            print(client)
             try:
                 client.sendall(message)
             except Exception as e:
                 print(f"Failed to send message to client: {e}")
 
+
+
+
+
 def broadcast_numbers():
     """Send the player index to all connected clients."""
     nums=[b"1",b"2",b"3",b"4"]
     for index,client in enumerate(clients):
-            print(client)
             try:
                 client.sendall(nums[index])
             except Exception as e:
@@ -101,37 +104,95 @@ def broadcast_numbers():
 
 def send_cards_to_players():
     for index,client in enumerate(clients):
-            print(client)
+
             try:
                 cards=pickle.dumps(players[index])
                 client.sendall(cards)
             except Exception as e:
                 print(f"Failed to send cards to player: {e}")
+def send(conn,message):
+    toSend=pickle.dumps(message)
+    conn.sendall(toSend)
+def handle_player(player,conn):
+    # Data formats: 
+    # {"player": number, "action": "pick", "args": [player_cards]}    - no need to be his turn and the card has to be freshly discarded 
+    # {"player": number, "action": "draw", "args": [player_cards]}    - needs to be his turn and the card has to be freshly discarded 
+    # {"player": number, "action": "discard", "args": [player_cards,card_index]} - needs to be his turn and the card has to be freshly discarded
+                                                                                                                                            
+                  
+    # If pick action happens, server decides if it is for a gong, pong or seung (in this order)
+    # If it is a players turn, if it has flowers, display them and give them the ability to draw again
+    # If a player picks a card, check for flowers again
+    # If the server decides GONG, give the ability to draw again
+
+    # Response formats:
+    while True:
+        try:
+            data = conn.recv(1024)
+            if data:
+                request=pickle.loads(data)
+                if request["action"]=="draw":
+                    if request["player"]!=gameState["turn"]%4+1:
+                        message={
+                            "type": "warning",
+                            "content":  "It's not your turn!"
+                        }
+                        print(f"Sent warning to player {request["player"]}")
+                        send(conn,message)
+                    else:
+                        newCard=all_cards.pop()
+                        players[request["player"]-1].append(newCard)
+                        message={
+                            "type": "drawn",
+                            "content":  players[request["player"]-1]
+                        }
+                        send(conn,message)
+
+
+                if request["action"]=="pick":
+                     pass
+                    
+                if request["action"]=="discard":
+                     if request["player"]!=gameState["turn"]%4+1:
+                        message={
+                            "type": "warning",
+                            "content":  "It's not your turn!"
+                        }
+                        print(f"Sent warning to player {request["player"]}")
+                        send(conn,message)
+                     else:
+                         cardIndex=request["args"][1]
+                         playerCards=request["args"][0]
+                         player=request["player"]
+                         discarded.append(players[player-1][cardIndex])
+                         players[player-1].pop(cardIndex)
+                         message={
+                            "type": "discarded",
+                            "content":  players[player-1]
+                         }
+                         send(conn,message)
+                         gameState["turn"]=gameState["turn"]+1
+                         gameState["discarded"]=discarded
+
+                         message= {
+                            "type": "state",
+                            "content":  gameState
+                         }
+                         broadcast_object(message)
+                         
+
+        except Exception as e:
+             print(f"Some exception occured: {e}")
+
+
+
 def handle_game():
     """Main game loop to handle player actions."""
     global gameState, clients
-    while True: #Game loop
-        for index, conn in enumerate(clients):
-            try:
-                data = conn.recv(1024)
-                if data:
-                    # Data formats: 
-                    # {"player": number, "action":"pick"}    - no need to be his turn and the card has to be freshly discarded 
-                    # {"player": number, "action":"draw"}    - needs to be his turn and the card has to be freshly discarded 
-                    # {"player": number, "action":"discard"} - needs to be his turn and the card has to be freshly discarded
-
-
-                    # If pick action happens, server decides if it is for a gong, pong or seung (in this order)
-                    # If it is a players turn, if it has flowers, display them and give them the ability to draw again
-                    # If a player picks a card, check for flowers again
-                    # If the server decides GONG, give the ability to draw again
-                    
-                    pass
-            except socket.error as e:
-                print(f"Error receiving data from player {index + 1}: {e}")
-                conn.close()
-                clients.remove(conn)
-                break
+    for index, conn in enumerate(clients):
+        threading.Thread(target=handle_player, args=(index+1,conn), daemon=True).start()
+                  
+             
 
 
 def wait_for_client_responses(expected_clients):
