@@ -379,7 +379,26 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         rendered_text = font.render(message, True, color)
         text_rect = rendered_text.get_rect(center=(x, y))
         window.blit(rendered_text, text_rect)
+    def display_turn():
+        """
+        Renders and displays a text message at the top of the screen that announces the player to move
 
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        global gameState
+        surfaceW, surfaceH = 100, 40
+        x, y = SCREEN_HEIGHT//2-50, 0
+        surface = pg.Surface((surfaceW, surfaceH), pg.SRCALPHA)
+        color = (255, 255, 0)
+        surface.fill(color)
+        window.blit(surface, (x, y))
+        text_x = x + surfaceW // 2
+        text_y = y + surfaceH // 2
+        text(text_x, text_y, 30, f"Player {gameState["turn"]} to move", color=(0, 0, 0))
     def display_draw_area():
         """
         Renders a semi-transparent rectangle representing the draw area on the screen,
@@ -744,6 +763,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             pick = display_pick_last_button()
             display_exposed_areas()
             display_exposed_cards()
+            display_turn()
             x_offset, _ = center_pieces(
                 playerCards, SCREEN_WIDTH, "horizontal")
             player1_rects = display_pieces(

@@ -9,88 +9,88 @@ PORT = 65432
 
 
 # DEMO CARDS
-players = [
-    [   # Player 1 (15 cards)
+# players = [
+#     [   # Player 1 (15 cards)
 
-        # Test win
-        # {'character_1': 'tiles/character_1.jpg'},
-        # {'character_2': 'tiles/character_2.jpg'},
-        # {'character_3': 'tiles/character_3.jpg'},
-        # {'stick_7': 'tiles/stick_7.jpg'},
-        # {'stick_8': 'tiles/stick_8.jpg'},
-        # {'stick_9': 'tiles/stick_9.jpg'},
-        # {'dragon_2': 'tiles/dragon_2.jpg'},
-        # {'dragon_2': 'tiles/dragon_2.jpg'},
-        # {'dragon_2': 'tiles/dragon_2.jpg'},
-        # {'dragon_1': 'tiles/dragon_1.jpg'},
-        # {'dragon_1': 'tiles/dragon_1.jpg'},
-        # {'dragon_1': 'tiles/dragon_1.jpg'},
-        # {'wind_1': 'tiles/wind_1.jpg'},
-        # {'wind_1': 'tiles/wind_1.jpg'},
+#         # Test win
+#         # {'character_1': 'tiles/character_1.jpg'},
+#         # {'character_2': 'tiles/character_2.jpg'},
+#         # {'character_3': 'tiles/character_3.jpg'},
+#         # {'stick_7': 'tiles/stick_7.jpg'},
+#         # {'stick_8': 'tiles/stick_8.jpg'},
+#         # {'stick_9': 'tiles/stick_9.jpg'},
+#         # {'dragon_2': 'tiles/dragon_2.jpg'},
+#         # {'dragon_2': 'tiles/dragon_2.jpg'},
+#         # {'dragon_2': 'tiles/dragon_2.jpg'},
+#         # {'dragon_1': 'tiles/dragon_1.jpg'},
+#         # {'dragon_1': 'tiles/dragon_1.jpg'},
+#         # {'dragon_1': 'tiles/dragon_1.jpg'},
+#         # {'wind_1': 'tiles/wind_1.jpg'},
+#         # {'wind_1': 'tiles/wind_1.jpg'},
 
-        # Test flowers and pick card
-        {'wind_3': 'tiles/wind_3.jpg'},
-        {'character_6': 'tiles/character_6.jpg'},
-        {'character_5': 'tiles/character_5.jpg'},
-        {'stick_8': 'tiles/stick_8.jpg'},
-        {'season_1': 'tiles/season_1.jpg'},
-        {'stick_4': 'tiles/stick_4.jpg'},
-        {'dot_6': 'tiles/dot_6.jpg'},
-        {'dragon_3': 'tiles/dragon_3.jpg'},
-        {'wind_2': 'tiles/wind_2.jpg'},
-        {'flower_4': 'tiles/flower_4.jpg'},
-        {'dragon_1': 'tiles/dragon_1.jpg'},
-        {'flower_2': 'tiles/flower_2.jpg'},
-        {'stick_6': 'tiles/stick_6.jpg'},
-        {'dot_3': 'tiles/dot_3.jpg'},
+#         # Test flowers and pick card
+#         {'wind_3': 'tiles/wind_3.jpg'},
+#         {'character_6': 'tiles/character_6.jpg'},
+#         {'character_5': 'tiles/character_5.jpg'},
+#         {'stick_8': 'tiles/stick_8.jpg'},
+#         {'season_1': 'tiles/season_1.jpg'},
+#         {'stick_4': 'tiles/stick_4.jpg'},
+#         {'dot_6': 'tiles/dot_6.jpg'},
+#         {'dragon_3': 'tiles/dragon_3.jpg'},
+#         {'wind_2': 'tiles/wind_2.jpg'},
+#         {'flower_4': 'tiles/flower_4.jpg'},
+#         {'dragon_1': 'tiles/dragon_1.jpg'},
+#         {'flower_2': 'tiles/flower_2.jpg'},
+#         {'stick_6': 'tiles/stick_6.jpg'},
+#         {'dot_3': 'tiles/dot_3.jpg'},
 
-    ],
-    [   # Player 2 (14 cards)
-        {'flower_2': 'tiles/flower_2.jpg'},
-        {'wind_3': 'tiles/wind_3.jpg'},
-        {'stick_3': 'tiles/stick_3.jpg'},
-        {'character_4': 'tiles/character_4.jpg'},
-        {'character_6': 'tiles/character_6.jpg'},
-        {'stick_2': 'tiles/stick_2.jpg'},
-        {'season_2': 'tiles/season_2.jpg'},
-        {'character_3': 'tiles/character_3.jpg'},
-        {'wind_4': 'tiles/wind_4.jpg'},
-        {'dragon_3': 'tiles/dragon_3.jpg'},
-        {'dot_1': 'tiles/dot_1.jpg'},
-        {'stick_5': 'tiles/stick_5.jpg'},
-        {'character_2': 'tiles/character_2.jpg'}
-    ],
-    [   # Player 3 (14 cards)
-        {'wind_1': 'tiles/wind_1.jpg'},
-        {'dot_4': 'tiles/dot_4.jpg'},
-        {'stick_2': 'tiles/stick_2.jpg'},
-        {'dot_2': 'tiles/dot_2.jpg'},
-        {'character_4': 'tiles/character_4.jpg'},
-        {'stick_8': 'tiles/stick_8.jpg'},
-        {'season_3': 'tiles/season_3.jpg'},
-        {'wind_4': 'tiles/wind_4.jpg'},
-        {'character_9': 'tiles/character_9.jpg'},
-        {'stick_1': 'tiles/stick_1.jpg'},
-        {'flower_1': 'tiles/flower_1.jpg'},
-        {'dot_5': 'tiles/dot_5.jpg'},
-        {'dragon_1': 'tiles/dragon_1.jpg'}
-    ],
-    [   # Player 4 (14 cards)
-        {'stick_2': 'tiles/stick_2.jpg'},
-        {'character_1': 'tiles/character_1.jpg'},
-        {'stick_5': 'tiles/stick_5.jpg'},
-        {'dot_5': 'tiles/dot_5.jpg'},
-        {'dot_1': 'tiles/dot_1.jpg'},
-        {'dragon_2': 'tiles/dragon_2.jpg'},
-        {'dot_7': 'tiles/dot_7.jpg'},
-        {'stick_3': 'tiles/stick_3.jpg'},
-        {'flower_4': 'tiles/flower_4.jpg'},
-        {'wind_2': 'tiles/wind_2.jpg'},
-        {'dragon_3': 'tiles/dragon_3.jpg'},
-        {'season_4': 'tiles/season_4.jpg'},
-        {'character_3': 'tiles/character_3.jpg'}
-    ]
-]
+#     ],
+#     [   # Player 2 (14 cards)
+#         {'flower_2': 'tiles/flower_2.jpg'},
+#         {'wind_3': 'tiles/wind_3.jpg'},
+#         {'stick_3': 'tiles/stick_3.jpg'},
+#         {'character_4': 'tiles/character_4.jpg'},
+#         {'character_6': 'tiles/character_6.jpg'},
+#         {'stick_2': 'tiles/stick_2.jpg'},
+#         {'season_2': 'tiles/season_2.jpg'},
+#         {'character_3': 'tiles/character_3.jpg'},
+#         {'wind_4': 'tiles/wind_4.jpg'},
+#         {'dragon_3': 'tiles/dragon_3.jpg'},
+#         {'dot_1': 'tiles/dot_1.jpg'},
+#         {'stick_5': 'tiles/stick_5.jpg'},
+#         {'character_2': 'tiles/character_2.jpg'}
+#     ],
+#     [   # Player 3 (14 cards)
+#         {'wind_1': 'tiles/wind_1.jpg'},
+#         {'dot_4': 'tiles/dot_4.jpg'},
+#         {'stick_2': 'tiles/stick_2.jpg'},
+#         {'dot_2': 'tiles/dot_2.jpg'},
+#         {'character_4': 'tiles/character_4.jpg'},
+#         {'stick_8': 'tiles/stick_8.jpg'},
+#         {'season_3': 'tiles/season_3.jpg'},
+#         {'wind_4': 'tiles/wind_4.jpg'},
+#         {'character_9': 'tiles/character_9.jpg'},
+#         {'stick_1': 'tiles/stick_1.jpg'},
+#         {'flower_1': 'tiles/flower_1.jpg'},
+#         {'dot_5': 'tiles/dot_5.jpg'},
+#         {'dragon_1': 'tiles/dragon_1.jpg'}
+#     ],
+#     [   # Player 4 (14 cards)
+#         {'stick_2': 'tiles/stick_2.jpg'},
+#         {'character_1': 'tiles/character_1.jpg'},
+#         {'stick_5': 'tiles/stick_5.jpg'},
+#         {'dot_5': 'tiles/dot_5.jpg'},
+#         {'dot_1': 'tiles/dot_1.jpg'},
+#         {'dragon_2': 'tiles/dragon_2.jpg'},
+#         {'dot_7': 'tiles/dot_7.jpg'},
+#         {'stick_3': 'tiles/stick_3.jpg'},
+#         {'flower_4': 'tiles/flower_4.jpg'},
+#         {'wind_2': 'tiles/wind_2.jpg'},
+#         {'dragon_3': 'tiles/dragon_3.jpg'},
+#         {'season_4': 'tiles/season_4.jpg'},
+#         {'character_3': 'tiles/character_3.jpg'}
+#     ]
+# ]
 
 # Card defining
 
@@ -166,7 +166,7 @@ player1 = all_cards[0:14]
 player2 = all_cards[14:27]
 player3 = all_cards[27:40]
 player4 = all_cards[40:53]
-# players=[player1,player2,player3,player4]
+players=[player1,player2,player3,player4]
 drawable = all_cards[53:]
 discarded = []
 
