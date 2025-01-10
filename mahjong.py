@@ -10,20 +10,19 @@ HOST = "127.0.0.1"
 PORT = 65432
 
 # Game start
+player_won=0
 message_queue = queue.Queue()
 gameStarted=False
 player=0
 playerCards=[]
 lock=0
+draws=1
 tile_size = (36, 50)
 shouldDiscard=False
 gameState={
    "status":"ongoing",
    "turn": 0,
-   "p1Exposed": [],
-   "p2Exposed": [],
-   "p3Exposed": [],
-   "p4Exposed": [],
+   "exposed": [[],[],[],[]],
    "discarded": []
 }
 def load_image(path, size):
@@ -120,7 +119,61 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return card_rects
 
 
-   
+    def display_exposed_cards():
+        global gameState, player
+
+        # Mapping player to relative positions
+        position_mapping = {
+            1: {"left": 4, "top": 3, "right": 2, "bottom": 1},
+            2: {"left": 1, "top": 4, "right": 3, "bottom": 2},
+            3: {"left": 2, "top": 1, "right": 4, "bottom": 3},
+            4: {"left": 3, "top": 2, "right": 1, "bottom": 4},
+        }
+
+        exposed = gameState["exposed"]
+        tile_height = tile_size[0]
+        tile_width = tile_size[1]
+
+        padX = 20
+        side_spacing = 10
+
+        # Horizontal and vertical exposed areas dimensions
+        s1h = SCREEN_HEIGHT - 40
+        s1w = tile_width
+        s2h = tile_width
+        s2w = SCREEN_HEIGHT - 40
+        rotations = {
+         "left": 90,
+         "top": 180,
+         "right": 270,
+         "bottom": 0,
+        }
+        # Coordinates for each area
+        areas = {
+            "left": (padX, 20, "vertical"),
+            "top": ((SCREEN_WIDTH - s2w) // 2, padX, "horizontal"),
+            "right": (SCREEN_WIDTH - padX - tile_width, 20, "vertical"),
+            "bottom": ((SCREEN_WIDTH - s2w) // 2, SCREEN_HEIGHT - padX - tile_width, "horizontal"),
+        }
+
+        # Get the player-relative positions for the current player
+        relative_positions = position_mapping[player]
+
+        # Draw exposed cards for each player in their relative position
+        for position, player_idx in relative_positions.items():
+            x, y, orientation = areas[position]
+            cards = exposed[player_idx - 1]
+
+            if orientation == "horizontal":
+                x_offset, y_offset = center_pieces(cards, SCREEN_WIDTH, orientation)
+                x_offset += 0  # Adjust for area position
+                y_offset = y
+            else:
+                x_offset, y_offset = center_pieces(cards, SCREEN_HEIGHT, orientation)
+                x_offset = x
+                y_offset += 0  # Adjust for area position
+            rotation = rotations[position]
+            display_pieces(transform_cards(cards), x_offset, y_offset, orientation,rotation=rotation)
    
   
 
@@ -204,6 +257,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         text_y = y+surfaceH//2
         text(text_x, text_y, 30, message,color=(255, 255,255))
         return pg.Rect(x,y,surfaceW,surfaceH)
+    
     def display_exposed_areas():
         padX=20
         s1h=SCREEN_HEIGHT-40
@@ -250,15 +304,27 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
              paint_piece(x, y, surface, 0)
 
     
-
     def deserialize_cards(cards):
         d_cards=[]
         for card in cards:
-            d_cards.append(list(card.keys())[0])
+            d_cards.append({list(card.keys())[0]:f"tiles/{list(card.keys())[0]}.jpg"})
         return d_cards
-    
+    def display_check_win():
+        surfaceW,surfaceH=200, 50
+        x,y=150,SCREEN_HEIGHT//2-surfaceH//2-230
+        surface=pg.Surface((surfaceW,surfaceH), pg.SRCALPHA)
+        color=(255,255,0,70)
+        surface.fill(color)
+        border_color = (255,255,0)
+        border_thickness = 5
+        pg.draw.rect(surface, border_color, surface.get_rect(), border_thickness)
+        window.blit(surface, (x,y))
+        text_x = x+surfaceW//2
+        text_y = y+surfaceH//2
+        text(text_x, text_y, 20, "Check win",color=(255, 255, 255))
+        return pg.Rect(x,y,surfaceW,surfaceH)
     def handle_messages():
-        global gameState,message_queue,playerCards,active_warning,shouldDiscard
+        global gameState,message_queue,playerCards,active_warning,shouldDiscard,draws,player_won
         while True:
             try:
                 data=s.recv(4096)
@@ -267,16 +333,23 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 if message["type"] == "drawn":
                     playerCards=transform_cards(message["content"])
-                    shouldDiscard=True
+                    draws-=1
+                    if draws==0:
+                        shouldDiscard=True
                 elif message["type"] == "warning":
                     print("i got warned")
                     active_warning=message["content"]
                 elif message["type"] == "discarded":
                     playerCards=transform_cards(message["content"])
                     shouldDiscard=False
-
+                elif message["type"] == "flower":
+                    playerCards=transform_cards(message["content"][1])
+                    draws+=message["content"][0]
                 elif message["type"] == "state":
                     gameState=message["content"]
+                elif message["type"] == "win":
+                    player_won=message["content"]
+                    
             except Exception as e:
                 print(f"Exeption while receiving broadcast: {e}")
     
@@ -290,33 +363,41 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     captionSet=False
     active_warning="none"
     pickSound = pg.mixer.Sound("sounds/pick.wav")
-    pongs=[pg.mixer.Sound("sounds/pong-1.mp3"),pg.mixer.Sound("sounds/pong-2.mp3"),pg.mixer.Sound("sounds/pong-3.mp3"),pg.mixer.Sound("sounds/pong-4.mp3")]
-    seungs=[pg.mixer.Sound("sounds/seung-1.mp3"),pg.mixer.Sound("sounds/seung-2.mp3"),pg.mixer.Sound("sounds/seung-3.mp3"),pg.mixer.Sound("sounds/seung-4.mp3")]
-    gongs=[pg.mixer.Sound("sounds/gong-1.mp3"),pg.mixer.Sound("sounds/gong-2.mp3"),pg.mixer.Sound("sounds/gong-3.mp3"),pg.mixer.Sound("sounds/gong-4.mp3")]
     threading.Thread(target=handle_messages, daemon=True).start()
-    
+    if gameState["turn"]==0 and player==1:
+        draws=0
     while run:
     
         draw=None
         discard=None
         pick=None
         window.blit(bg_image, (0, 0))
+        
         if gameStarted==False:
-             text(500,350,50,"Waiting for players")
+            text(500,350,50,"Waiting for players")
+        elif player_won>0:
+            window.blit(bg_image, (0, 0))
+            text(500,350,50,f"Player {player_won} won the game!")
         else:
             if not captionSet:
                 pg.display.set_caption(f"Mahjong - Player {player}")
                 captionSet=True
-            if gameState["turn"]==0 and player==1:
+            if draws>0:
+                shouldDiscard=False
+            else:
                 shouldDiscard=True
+            # if gameState["turn"]==0 and player==1:
+            #     shouldDiscard=True
             if active_warning!="none":
                 display_warning(active_warning)
             display_discarded_cards_area()
             display_discarded_cards()
+            check=display_check_win()
             draw=display_draw_area()
             discard=display_discard_button()
             pick=display_pick_last_button()
             display_exposed_areas()
+            display_exposed_cards()
             x_offset, _ = center_pieces(playerCards, SCREEN_WIDTH, "horizontal")
             player1_rects = display_pieces(playerCards, x_offset, SCREEN_HEIGHT - tile_size[1] - 80, "horizontal", rotation=0)
 
@@ -352,7 +433,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 # Check Draw Card click
                 if draw.collidepoint(mouse_pos):
-                    if shouldDiscard==False:
+                    if (shouldDiscard==False and draws>=1) or (gameState["turn"]==0 and player==1 and draws>0):
                         message={
                             "player":player,
                             "action":"draw",
@@ -368,7 +449,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         "player":player,
                         "action":"pick",
                         "args":[deserialize_cards(playerCards)]
-                        }
+                    }
                     request(message)
                     
                 # Check Discard click
@@ -377,6 +458,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         active_warning="You should select a card first!"
                     elif shouldDiscard==False:
                         active_warning="You can't discard now"
+                    elif draws>=1:
+                        active_warning="You still need to draw"
                     else:  
                         print(shouldDiscard)
                         message={
@@ -386,7 +469,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         }
                         request(message)
                         holdingCard=False
-                
+                if check.collidepoint(mouse_pos):
+                    message={
+                            "player":player,
+                            "action":"check",
+                            "args":[deserialize_cards(playerCards)]
+                    }
+                    request(message)
         pg.display.update()
 
     pg.quit()
