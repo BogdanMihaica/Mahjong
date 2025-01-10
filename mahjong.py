@@ -390,15 +390,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             None
         """
         global gameState
-        surfaceW, surfaceH = 100, 40
-        x, y = SCREEN_HEIGHT//2-50, 0
+        surfaceW, surfaceH = 200, 30
+        x, y = SCREEN_HEIGHT//2+50, 0
         surface = pg.Surface((surfaceW, surfaceH), pg.SRCALPHA)
         color = (255, 255, 0)
         surface.fill(color)
         window.blit(surface, (x, y))
         text_x = x + surfaceW // 2
         text_y = y + surfaceH // 2
-        text(text_x, text_y, 30, f"Player {gameState["turn"]} to move", color=(0, 0, 0))
+        turn=f"Player {gameState["turn"]+1} to move"
+        if player==gameState["turn"]+1:
+            turn="It's your turn!"
+        text(text_x, text_y, 15, turn, color=(0, 0, 0))
     def display_draw_area():
         """
         Renders a semi-transparent rectangle representing the draw area on the screen,
